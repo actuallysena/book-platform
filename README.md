@@ -186,8 +186,3 @@ This is a **hobby/learning project**. It is not production-ready and may contain
 
 This project was developed with the help of AI tools, including [v0 by Vercel](https://v0.dev/) for UI generation and AI-powered coding assistants throughout the development process.
 
----
-
-## 📄 License
-
-This project is unlicensed — feel free to use it as a reference for your own learning.
