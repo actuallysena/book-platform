@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  AUTHOR
+  MODERATOR
+  ADMIN
+}
+
+enum BookStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  SUSPENDED
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  username  String   @unique
+  role      Role     @default(USER)
+  name      String?
+  avatar    String?
+  bio       String?
+  location  String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  books     Book[]
+  comments  Comment[]
+  likes     Like[]
+  
+  // Moderation
+  suspendedUntil   DateTime?
+  suspensionReason String?
+  
+  reportsMade      Report[]  @relation("Reporter")
+  reportsReceived  Report[]  @relation("ReportedUser")
+
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+  sentNotifications     Notification[] @relation("SentNotifications")
+}
+
+model Book {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  coverImage  String?
+  status      BookStatus @default(DRAFT)
+  viewCount   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+
+  chapters    Chapter[]
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  comments    Comment[]
+  tags        String[]   @default([])
+  likes       Like[]
+  reports     Report[]
+  
+  // Admin / Moderation
+  suspendedUntil   DateTime?
+  suspensionReason String?
+}
+
+
+model Chapter {
+  id        String   @id @default(uuid())
+  title     String
+  content   Json     @default("{}") // Changed to Json for structured content
+  order     Int
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reports   Report[]
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  slug  String @unique
+  color String? // e.g. "bg-red-500/10"
+  books Book[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  quote     String?  // The text being commented on
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  chapterId String?
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  
+  blockId   String?  // ID of the paragraph block (if inline)
+
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  reports   Report[]
+}
+
+model Like {
+  id     String @id @default(uuid())
+  userId String
+  bookId String
+  user   User   @relation(fields: [userId], references: [id])
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId]) // A user can like a book only once
+}
+
+model Report {
+  id        String       @id @default(uuid())
+  reason    String
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  reporterId String
+  reporter   User   @relation("Reporter", fields: [reporterId], references: [id])
+
+  // Optional targets (Can report a User OR a Book)
+  targetUserId String?
+  targetUser   User?   @relation("ReportedUser", fields: [targetUserId], references: [id])
+
+  targetBookId String?
+  targetBook   Book?   @relation(fields: [targetBookId], references: [id])
+
+  targetChapterId String?
+  targetChapter   Chapter? @relation(fields: [targetChapterId], references: [id])
+
+  targetCommentId String?
+  targetComment   Comment? @relation(fields: [targetCommentId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // REPLY, MENTION, LIKE, FOLLOW
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  recipientId String
+  recipient   User   @relation("ReceivedNotifications", fields: [recipientId], references: [id])
+
+  actorId     String
+  actor       User   @relation("SentNotifications", fields: [actorId], references: [id])
+
+  entityId    String? // ID of the related entity (Comment ID, Book ID, etc.)
+  message     String?
+}
