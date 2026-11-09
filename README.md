@@ -184,5 +184,4 @@ This project helped me gain hands-on experience with:
 
 This is a **hobby/learning project**. It is not production-ready and may contain incomplete features, bugs, or security issues. Use it as a reference or learning resource at your own risk.
 
-This project was developed with the help of AI tools, including [v0 by Vercel](https://v0.dev/) for UI generation and AI-powered coding assistants throughout the development process.
-
+This project was designed, directed, and developed by me. The product vision, architecture decisions, and feature requirements are my own; AI-assisted tools were used along the way to help implement them under my direction.
